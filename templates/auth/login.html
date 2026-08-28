@@ -1,0 +1,38 @@
+{% extends "auth/auth_base.html" %}
+
+{% block title %}Sign In — {{ app_name }}{% endblock %}
+{% block auth_title %}Welcome Back{% endblock %}
+{% block auth_subtitle %}Sign in to monitor, detect and protect{% endblock %}
+
+{% block auth_content %}
+<form method="post" novalidate>
+  {{ form.hidden_tag() }}
+  <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
+
+  <div class="mb-3">
+    {{ form.identity.label(class="form-label") }}
+    {{ form.identity(class="form-control", placeholder="you@example.com or username", autofocus=true) }}
+    {% for error in form.identity.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+  </div>
+
+  <div class="mb-3">
+    <div class="d-flex justify-content-between align-items-center">
+      {{ form.password.label(class="form-label") }}
+      <a class="auth-small-link" href="{{ url_for('auth.forgot_password') }}">Forgot password?</a>
+    </div>
+    {{ form.password(class="form-control", placeholder="Your password") }}
+    {% for error in form.password.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+  </div>
+
+  <div class="form-check mb-4">
+    {{ form.remember(class="form-check-input") }}
+    {{ form.remember.label(class="form-check-label text-secondary") }}
+  </div>
+
+  {{ form.submit(class="btn btn-accent w-100") }}
+</form>
+
+<div class="auth-links">
+  Don't have an account? <a href="{{ url_for('auth.register') }}">Register here</a>
+</div>
+{% endblock %}

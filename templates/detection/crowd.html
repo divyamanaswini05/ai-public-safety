@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Crowd Analysis — {{ app_name }}{% endblock %}
+{% block page_title %}Crowd Analysis{% endblock %}
+
+{% block content %}
+{% set can_manage = current_user.has_role("admin", "operator") %}
+
+<div class="row g-3">
+  <div class="col-12 col-xl-5">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Detector status</h3>
+      <dl class="detail-grid">
+        <div>
+          <dt>YOLO runtime</dt>
+          <dd>{% if status.yolo_installed %}<span class="badge-soft success"><i class="fa-solid fa-check me-1"></i>Installed</span>
+          {% else %}<span class="badge-soft danger"><i class="fa-solid fa-xmark me-1"></i>Missing</span>{% endif %}</dd>
+        </div>
+        <div>
+          <dt>Model weights</dt>
+          <dd>{% if status.weights_present %}<span class="badge-soft success"><i class="fa-solid fa-check me-1"></i>crowd.pt</span>
+          {% else %}<span class="badge-soft danger"><i class="fa-solid fa-xmark me-1"></i>Not found</span>{% endif %}</dd>
+        </div>
+        <div>
+          <dt>Overall status</dt>
+          <dd>{% if status.available %}<span class="badge-soft success">Ready</span>
+          {% else %}<span class="badge-soft warning">Unavailable</span>{% endif %}</dd>
+        </div>
+        <div><dt>Weights path</dt><dd><code style="font-size:0.72rem">{{ status.weights_path }}</code></dd></div>
+      </dl>
+
+      {% if not status.available %}
+      <div class="alert-glass mt-3">
+        <p class="mb-1"><i class="fa-solid fa-circle-info me-1"></i>Dependencies missing</p>
+        <p class="list-secondary mb-0">
+          Install the Ultralytics package and drop <code>crowd.pt</code> into
+          <code>ai/weights/</code> to enable real-time crowd analysis.
+        </p>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="card glass mt-3">
+      <h3 class="panel-title mb-3">Recent crowd incidents</h3>
+      {% if incidents %}
+      <ul class="list-group list-group-flush panel-list">
+        {% for incident in incidents %}
+        <li class="list-group-item panel-list-item">
+          <span class="d-flex align-items-center gap-2">
+            <span class="list-primary">{{ incident.title }}</span>
+            <span class="badge-soft {{ incident.status.value }}">{{ incident.status.value|title }}</span>
+          </span>
+          <span class="list-secondary d-block">
+            {{ incident.incident_type.value|title }} &middot;
+            {{ incident.severity.value|title }} &middot;
+            {{ incident.detected_at.strftime("%d %b, %H:%M") }}
+          </span>
+          <a class="btn btn-ghost btn-sm mt-1" href="{{ url_for('incidents.detail', incident_id=incident.id) }}">
+            View details <i class="fa-solid fa-arrow-right ms-1"></i>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty-panel"><i class="fa-solid fa-people-group"></i><p>No crowd incidents recorded yet</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-7">
+    {% if can_manage %}
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Manual analysis</h3>
+      {% if status.available and cameras %}
+      <form method="post" action="{{ url_for('crowd.run') }}" class="row g-2 align-items-end">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="col-md-8">
+          <label class="form-label form-label-sm">Camera</label>
+          <select class="form-select form-select-sm" name="camera_id" required>
+            {% for camera in cameras %}
+            <option value="{{ camera.id }}">{{ camera.name }} — {{ camera.location or camera.ip_address or camera.source_url or "—" }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <button type="submit" class="btn btn-accent btn-sm w-100">
+            <i class="fa-solid fa-play me-1"></i>Run analysis
+          </button>
+        </div>
+      </form>
+      {% elif not status.available %}
+      <div class="empty-panel">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <p>Detector unavailable — install dependencies to enable manual runs.</p>
+      </div>
+      {% else %}
+      <div class="empty-panel">
+        <i class="fa-solid fa-video-slash"></i>
+        <p>No active cameras registered. Add a camera first.</p>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="card glass mt-3">
+      <h3 class="panel-title mb-3">How it works</h3>
+      <ul class="list-group list-group-flush panel-list">
+        <li class="list-group-item panel-list-item">
+          <span class="list-primary"><i class="fa-solid fa-microchip me-2"></i>YOLOv8 model</span>
+          <span class="list-secondary d-block">Ultralytics runs inference on each video frame to count people and assess crowd density.</span>
+        </li>
+        <li class="list-group-item panel-list-item">
+          <span class="list-primary"><i class="fa-solid fa-people-group me-2"></i>Density estimation</span>
+          <span class="list-secondary d-block">High person counts in confined areas trigger <code>crowd</code> incidents scaled to severity thresholds.</span>
+        </li>
+        <li class="list-group-item panel-list-item">
+          <span class="list-primary"><i class="fa-solid fa-bolt me-2"></i>Instant alerting</span>
+          <span class="list-secondary d-block">Every detection creates an incident and fans out alerts through all enabled channels.</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

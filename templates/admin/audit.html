@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Log — Admin — {{ app_name }}{% endblock %}
+{% block page_title %}Audit Log{% endblock %}
+
+{% block content %}
+<div class="card glass mb-3">
+  <form method="get" class="d-flex gap-2 align-items-center">
+    <select class="form-select form-select-sm" name="module" style="max-width:180px;">
+      <option value="">All modules</option>
+      {% for mod in modules %}
+      <option value="{{ mod }}" {{ "selected" if filters.module == mod }}>{{ mod }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-accent btn-sm" type="submit">
+      <i class="fa-solid fa-filter me-1"></i>Filter
+    </button>
+  </form>
+</div>
+
+<div class="card glass">
+  <div class="table-responsive">
+    <table class="table table-sm table-dark mb-0">
+      <thead>
+        <tr><th>Time</th><th>Action</th><th>Module</th><th>Level</th><th>Message</th><th>IP</th></tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td class="list-secondary">{{ log.created_at.strftime("%d %b %Y %H:%M") }}</td>
+          <td class="list-primary">{{ log.action }}</td>
+          <td><span class="badge bg-secondary">{{ log.module or "—" }}</span></td>
+          <td>
+            {% set lvl = log.level.value %}
+            <span class="badge {{ 'bg-danger' if lvl == 'error' else 'bg-warning' if lvl == 'warning' else 'bg-info' }}">{{ lvl }}</span>
+          </td>
+          <td>{{ log.message[:80] if log.message else "—" }}</td>
+          <td class="list-secondary">{{ log.ip_address or "—" }}</td>
+        </tr>
+        {% endfor %}
+        {% if not logs %}
+        <tr><td colspan="6" class="list-secondary text-center">No log entries found.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

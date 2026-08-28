@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}{{ evidence.file_name }} — {{ app_name }}{% endblock %}
+{% block page_title %}{{ evidence.file_name }}{% endblock %}
+
+{% block content %}
+{% set can_delete = current_user.has_role("admin") %}
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div class="d-flex gap-2 flex-wrap">
+    <span class="badge-soft info">{{ evidence.evidence_type.value|title }}</span>
+    <span class="badge-soft muted">{{ "%.1f KB"|format(evidence.file_size / 1024) if evidence.file_size else "Unknown size" }}</span>
+  </div>
+  <a class="btn btn-ghost btn-sm" href="{{ url_for('evidence.index') }}">
+    <i class="fa-solid fa-arrow-left me-1"></i>All evidence
+  </a>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-xl-7">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Evidence details</h3>
+      <dl class="detail-grid">
+        <div><dt>File name</dt><dd>{{ evidence.file_name }}</dd></div>
+        <div><dt>Type</dt><dd>{{ evidence.evidence_type.value|title }}</dd></div>
+        <div><dt>MIME type</dt><dd>{{ evidence.mime_type or "—" }}</dd></div>
+        <div><dt>File size</dt>
+          <dd>{{ "%.1f KB"|format(evidence.file_size / 1024) if evidence.file_size else "—" }}</dd>
+        </div>
+        <div><dt>Captured</dt><dd>{{ evidence.captured_at.strftime("%d %b %Y, %H:%M:%S") }}</dd></div>
+        <div><dt>Stored path</dt><dd><code style="font-size:0.72rem">{{ evidence.file_path or "—" }}</code></dd></div>
+      </dl>
+
+      {% if can_delete %}
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        <form method="post" action="{{ url_for('evidence.delete', evidence_id=evidence.id) }}"
+              onsubmit="return confirm('Delete this evidence permanently?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-ghost btn-sm" style="color:#f87171">
+            <i class="fa-solid fa-trash me-1"></i>Delete
+          </button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-5">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Linked incident</h3>
+      {% if evidence.incident %}
+      <ul class="list-group list-group-flush panel-list">
+        <li class="list-group-item panel-list-item">
+          <span class="d-flex align-items-center gap-2">
+            <span class="list-primary">{{ evidence.incident.title }}</span>
+            <span class="badge-soft {{ evidence.incident.status.value }}">{{ evidence.incident.status.value|title }}</span>
+          </span>
+          <span class="list-secondary d-block">
+            {{ evidence.incident.incident_type.value|title }} &middot;
+            {{ evidence.incident.severity.value|title }}
+          </span>
+          <a class="btn btn-ghost btn-sm mt-1" href="{{ url_for('incidents.detail', incident_id=evidence.incident.id) }}">
+            View incident <i class="fa-solid fa-arrow-right ms-1"></i>
+          </a>
+        </li>
+      </ul>
+      {% else %}
+      <div class="empty-panel"><i class="fa-solid fa-link-slash"></i><p>No incident linked</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

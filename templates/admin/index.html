@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Admin — {{ app_name }}{% endblock %}
+{% block page_title %}Admin Panel{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-12 col-md-4">
+    <a class="card glass text-center py-4 d-block text-decoration-none" href="{{ url_for('admin.users') }}">
+      <i class="fa-solid fa-users fa-2x mb-2 list-primary"></i>
+      <h5>{{ user_count }}</h5>
+      <span class="list-secondary">Users</span>
+    </a>
+  </div>
+  <div class="col-12 col-md-4">
+    <a class="card glass text-center py-4 d-block text-decoration-none" href="{{ url_for('admin.settings') }}">
+      <i class="fa-solid fa-sliders fa-2x mb-2 list-primary"></i>
+      <h5>{{ setting_count }}</h5>
+      <span class="list-secondary">Settings</span>
+    </a>
+  </div>
+  <div class="col-12 col-md-4">
+    <a class="card glass text-center py-4 d-block text-decoration-none" href="{{ url_for('admin.audit_log') }}">
+      <i class="fa-solid fa-clipboard-list fa-2x mb-2 list-primary"></i>
+      <h5>{{ log_count }}</h5>
+      <span class="list-secondary">Audit Logs</span>
+    </a>
+  </div>
+</div>
+
+<div class="card glass mt-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="panel-title mb-0">Recent activity</h3>
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('admin.audit_log') }}">View all</a>
+  </div>
+  {% if recent_logs %}
+  <div class="table-responsive">
+    <table class="table table-sm table-dark mb-0">
+      <thead>
+        <tr><th>Action</th><th>Module</th><th>Level</th><th>Message</th><th>Time</th></tr>
+      </thead>
+      <tbody>
+        {% for log in recent_logs %}
+        <tr>
+          <td>{{ log.action }}</td>
+          <td>{{ log.module or "—" }}</td>
+          <td><span class="badge bg-info">{{ log.level.value }}</span></td>
+          <td>{{ log.message[:60] if log.message else "—" }}</td>
+          <td>{{ log.created_at.strftime("%d %b %H:%M") }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="list-secondary mb-0">No audit logs yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

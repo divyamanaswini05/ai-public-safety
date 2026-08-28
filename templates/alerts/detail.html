@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}{{ alert.title }} — {{ app_name }}{% endblock %}
+{% block page_title %}{{ alert.title }}{% endblock %}
+
+{% block content %}
+{% set can_manage = current_user.has_role("admin", "operator") %}
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div class="d-flex gap-2 flex-wrap">
+    <span class="badge-soft info">{{ alert.alert_type.value|title }}</span>
+    <span class="badge-soft {{ 'danger' if alert.priority.value in ('high', 'critical') else 'warning' if alert.priority.value == 'medium' else 'muted' }}">{{ alert.priority.value|title }}</span>
+    <span class="badge-soft alert-{{ alert.status.value }}">{{ alert.status.value|title }}</span>
+  </div>
+  <a class="btn btn-ghost btn-sm" href="{{ url_for('alerts.index') }}">
+    <i class="fa-solid fa-arrow-left me-1"></i>All alerts
+  </a>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-xl-7">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Message</h3>
+      <p class="mb-3">{{ alert.message or "No message content." }}</p>
+      <dl class="detail-grid">
+        <div><dt>Title</dt><dd>{{ alert.title }}</dd></div>
+        <div><dt>Priority</dt><dd>{{ alert.priority.value|title }}</dd></div>
+        <div><dt>Type</dt><dd>{{ alert.alert_type.value|title }}</dd></div>
+        <div><dt>Channels</dt>
+          <dd>{% if alert.channels %}{{ alert.channels|join(", ") }}{% else %}—{% endif %}</dd>
+        </div>
+        <div><dt>Created</dt><dd>{{ alert.created_at.strftime("%d %b %Y, %H:%M:%S") }}</dd></div>
+        <div><dt>Sent</dt><dd>{{ alert.sent_at.strftime("%d %b %Y, %H:%M:%S") if alert.sent_at else "—" }}</dd></div>
+        <div><dt>Acknowledged</dt>
+          <dd>{{ alert.acknowledged_at.strftime("%d %b %Y, %H:%M:%S") if alert.acknowledged_at else "—" }}</dd>
+        </div>
+        <div><dt>Acknowledged by</dt>
+          <dd>{{ alert.acknowledged_by_user.full_name if alert.acknowledged_by_user else "—" }}</dd>
+        </div>
+      </dl>
+
+      {% if can_manage %}
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        {% if alert.status.value == "pending" %}
+        <form method="post" action="{{ url_for('alerts.send', alert_id=alert.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-accent btn-sm">
+            <i class="fa-solid fa-paper-plane me-1"></i>Mark sent
+          </button>
+        </form>
+        {% endif %}
+        {% if alert.status.value == "sent" %}
+        <form method="post" action="{{ url_for('alerts.acknowledge', alert_id=alert.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-accent btn-sm">
+            <i class="fa-solid fa-check me-1"></i>Acknowledge
+          </button>
+        </form>
+        {% endif %}
+        {% if alert.status.value not in ("acknowledged", "expired") and current_user.has_role("admin") %}
+        <form method="post" action="{{ url_for('alerts.expire', alert_id=alert.id) }}"
+              onsubmit="return confirm('Expire this alert permanently?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-ghost btn-sm" style="color:#f87171">
+            <i class="fa-solid fa-clock-rotate-left me-1"></i>Expire
+          </button>
+        </form>
+        {% endif %}
+      </div>
+      {% else %}
+      <span class="list-secondary">You have read-only access to this alert.</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-5">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Linked incident</h3>
+      {% if alert.incident %}
+      <ul class="list-group list-group-flush panel-list">
+        <li class="list-group-item panel-list-item">
+          <span class="d-flex align-items-center gap-2">
+            <span class="list-primary">{{ alert.incident.title }}</span>
+            <span class="badge-soft alert-{{ alert.incident.status.value }}">{{ alert.incident.status.value|title }}</span>
+          </span>
+          <span class="list-secondary d-block">
+            {{ alert.incident.incident_type.value|title }} &middot;
+            {{ alert.incident.severity.value|title }} &middot;
+            {{ alert.incident.detected_at.strftime("%d %b, %H:%M") }}
+          </span>
+          <a class="btn btn-ghost btn-sm mt-2" href="{{ url_for('incidents.detail', incident_id=alert.incident.id) }}">
+            <i class="fa-solid fa-arrow-right me-1"></i>View incident
+          </a>
+        </li>
+      </ul>
+      {% else %}
+      <div class="empty-panel"><i class="fa-solid fa-link-slash"></i><p>No incident linked</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

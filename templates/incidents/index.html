@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Incidents — {{ app_name }}{% endblock %}
+{% block page_title %}Incidents{% endblock %}
+
+{% block content %}
+{% set can_manage = current_user.has_role("admin", "operator", "analyst") %}
+{% set can_delete = current_user.has_role("admin") %}
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div class="d-flex gap-2 flex-wrap">
+    {% for status in statuses %}
+      {% set url = url_for('incidents.index', status=status.value if filters.status != status.value else none,
+                           severity=filters.severity, type=filters.incident_type, camera_id=filters.camera_id, q=filters.search) %}
+      <a class="badge-soft chip {{ status.value }} {% if filters.status == status.value %}active{% endif %}"
+         href="{{ url }}">
+        {{ status.value|title }} <span class="chip-count">{{ counts[status.value] }}</span>
+      </a>
+    {% endfor %}
+  </div>
+  {% if can_manage %}
+  <a class="btn btn-accent btn-sm" href="{{ url_for('incidents.new') }}">
+    <i class="fa-solid fa-plus me-1"></i>Report Incident
+  </a>
+  {% endif %}
+</div>
+
+<div class="card glass mb-3">
+  <div class="card-body">
+    <form method="get" class="row g-2 align-items-end">
+      <input type="hidden" name="status" value="{{ filters.status or '' }}">
+      <div class="col-6 col-md-3">
+        <label class="form-label form-label-sm">Severity</label>
+        <select class="form-select form-select-sm" name="severity">
+          <option value="">Any</option>
+          {% for s in severities %}
+          <option value="{{ s.value }}" {% if filters.severity == s.value %}selected{% endif %}>{{ s.value|title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label form-label-sm">Type</label>
+        <select class="form-select form-select-sm" name="type">
+          <option value="">Any</option>
+          {% for t in types %}
+          <option value="{{ t.value }}" {% if filters.incident_type == t.value %}selected{% endif %}>{{ t.value|title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label form-label-sm">Camera</label>
+        <select class="form-select form-select-sm" name="camera_id">
+          <option value="">Any</option>
+          {% for camera in cameras %}
+          <option value="{{ camera.id }}" {% if filters.camera_id == camera.id %}selected{% endif %}>{{ camera.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label form-label-sm">Search</label>
+        <input class="form-control form-control-sm" type="search" name="q" placeholder="Title…" value="{{ filters.search or '' }}">
+      </div>
+      <div class="col-12 d-flex gap-2">
+        <button class="btn btn-accent btn-sm" type="submit"><i class="fa-solid fa-filter me-1"></i>Apply</button>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('incidents.index') }}">Clear</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if incidents %}
+<div class="card glass">
+  <div class="table-responsive">
+    <table class="table table-borderless table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Incident</th>
+          <th>Type</th>
+          <th>Camera</th>
+          <th>Severity</th>
+          <th>Status</th>
+          <th>Confidence</th>
+          <th>Detected</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for incident in incidents %}
+        <tr>
+          <td>
+            <span class="list-primary">{{ incident.title }}</span>
+            <span class="list-secondary d-block">{{ incident.description|truncate(60) if incident.description else "No description" }}</span>
+          </td>
+          <td><span class="badge-soft info">{{ incident.incident_type.value|title }}</span></td>
+          <td class="list-secondary">{{ incident.camera.name if incident.camera else "—" }}</td>
+          <td><span class="badge-soft {{ 'danger' if incident.severity.value in ('high', 'critical') else 'warning' if incident.severity.value == 'medium' else 'muted' }}">{{ incident.severity.value|title }}</span></td>
+          <td><span class="badge-soft {{ incident.status.value }}">{{ incident.status.value|title }}</span></td>
+          <td class="list-secondary">{{ "%.0f%%"|format(incident.confidence * 100) if incident.confidence is not none else "—" }}</td>
+          <td class="list-secondary">{{ incident.detected_at.strftime("%d %b, %H:%M") }}</td>
+          <td class="text-end">
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('incidents.detail', incident_id=incident.id) }}">
+              <i class="fa-solid fa-eye"></i>
+            </a>
+            {% if can_manage %}
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('incidents.edit', incident_id=incident.id) }}">
+              <i class="fa-solid fa-pen"></i>
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card glass">
+  <div class="empty-panel">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <p>No incidents match the current filters.</p>
+    {% if can_manage %}
+    <a class="btn btn-accent btn-sm mt-2" href="{{ url_for('incidents.new') }}">
+      <i class="fa-solid fa-plus me-1"></i>Report an incident
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

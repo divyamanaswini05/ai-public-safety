@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Alerts — {{ app_name }}{% endblock %}
+{% block page_title %}Alerts{% endblock %}
+
+{% block content %}
+{% set can_manage = current_user.has_role("admin", "operator") %}
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div class="d-flex gap-2 flex-wrap">
+    {% for status in statuses %}
+      {% set url = url_for('alerts.index', status=status.value if filters.status != status.value else none,
+                           priority=filters.priority, type=filters.alert_type,
+                           incident_id=filters.incident_id, q=filters.search) %}
+      <a class="badge-soft chip alert-{{ status.value }} {% if filters.status == status.value %}active{% endif %}"
+         href="{{ url }}">
+        {{ status.value|title }} <span class="chip-count">{{ counts[status.value] }}</span>
+      </a>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card glass mb-3">
+  <div class="card-body">
+    <form method="get" class="row g-2 align-items-end">
+      <input type="hidden" name="status" value="{{ filters.status or '' }}">
+      <div class="col-6 col-md-3">
+        <label class="form-label form-label-sm">Priority</label>
+        <select class="form-select form-select-sm" name="priority">
+          <option value="">Any</option>
+          {% for p in priorities %}
+          <option value="{{ p.value }}" {% if filters.priority == p.value %}selected{% endif %}>{{ p.value|title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label form-label-sm">Type</label>
+        <select class="form-select form-select-sm" name="type">
+          <option value="">Any</option>
+          {% for t in types %}
+          <option value="{{ t.value }}" {% if filters.alert_type == t.value %}selected{% endif %}>{{ t.value|title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label form-label-sm">Search</label>
+        <input class="form-control form-control-sm" type="search" name="q" placeholder="Title…" value="{{ filters.search or '' }}">
+      </div>
+      <div class="col-6 col-md-3 d-flex gap-2">
+        <button class="btn btn-accent btn-sm" type="submit"><i class="fa-solid fa-filter me-1"></i>Apply</button>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('alerts.index') }}">Clear</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if alerts %}
+<div class="card glass">
+  <div class="table-responsive">
+    <table class="table table-borderless table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Alert</th>
+          <th>Type</th>
+          <th>Priority</th>
+          <th>Incident</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for alert in alerts %}
+        <tr>
+          <td>
+            <span class="d-flex align-items-center gap-2">
+              <span class="camera-thumb"><i class="fa-solid fa-bell"></i></span>
+              <span>
+                <span class="list-primary">{{ alert.title }}</span>
+                <span class="list-secondary d-block">{{ alert.message|truncate(50) if alert.message else "" }}</span>
+              </span>
+            </span>
+          </td>
+          <td><span class="badge-soft info">{{ alert.alert_type.value|title }}</span></td>
+          <td>
+            <span class="badge-soft {{ 'danger' if alert.priority.value in ('high', 'critical') else 'warning' if alert.priority.value == 'medium' else 'muted' }}">
+              {{ alert.priority.value|title }}
+            </span>
+          </td>
+          <td class="list-secondary">{{ alert.incident.title if alert.incident else "—" }}</td>
+          <td><span class="badge-soft alert-{{ alert.status.value }}">{{ alert.status.value|title }}</span></td>
+          <td class="list-secondary">{{ alert.created_at.strftime("%d %b, %H:%M") }}</td>
+          <td class="text-end">
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('alerts.detail', alert_id=alert.id) }}">
+              <i class="fa-solid fa-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card glass">
+  <div class="empty-panel">
+    <i class="fa-solid fa-bell-slash"></i>
+    <p>No alerts match the current filters.</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

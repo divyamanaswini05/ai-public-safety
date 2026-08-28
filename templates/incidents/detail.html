@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}{{ incident.title }} — {{ app_name }}{% endblock %}
+{% block page_title %}{{ incident.title }}{% endblock %}
+
+{% block content %}
+{% set can_manage = current_user.has_role("admin", "operator", "analyst") %}
+{% set can_delete = current_user.has_role("admin") %}
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div class="d-flex gap-2 flex-wrap">
+    <span class="badge-soft info">{{ incident.incident_type.value|title }}</span>
+    <span class="badge-soft {{ 'danger' if incident.severity.value in ('high', 'critical') else 'warning' if incident.severity.value == 'medium' else 'muted' }}">{{ incident.severity.value|title }}</span>
+    <span class="badge-soft {{ incident.status.value }}">{{ incident.status.value|title }}</span>
+    {% if incident.camera %}<span class="badge-soft muted"><i class="fa-solid fa-video me-1"></i>{{ incident.camera.name }}</span>{% endif %}
+  </div>
+  <a class="btn btn-ghost btn-sm" href="{{ url_for('incidents.index') }}">
+    <i class="fa-solid fa-arrow-left me-1"></i>All incidents
+  </a>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-xl-7">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Details</h3>
+      <p class="mb-3">{{ incident.description or "No description recorded." }}</p>
+      <dl class="detail-grid">
+        <div><dt>Detected</dt><dd>{{ incident.detected_at.strftime("%d %b %Y, %H:%M:%S") }}</dd></div>
+        <div><dt>Resolved</dt>
+          <dd>{{ incident.resolved_at.strftime("%d %b %Y, %H:%M:%S") if incident.resolved_at else "—" }}</dd>
+        </div>
+        <div><dt>Confidence</dt>
+          <dd>{{ "%.0f%%"|format(incident.confidence * 100) if incident.confidence is not none else "—" }}</dd>
+        </div>
+        <div><dt>Reported by</dt>
+          <dd>{{ incident.created_by_user.full_name if incident.created_by_user else "AI engine" }}</dd>
+        </div>
+      </dl>
+
+      {% if incident.details %}
+      <h3 class="panel-title mb-2">Detection details</h3>
+      <pre class="code-block">{{ incident.details | tojson(indent=2) }}</pre>
+      {% endif %}
+
+      {% if can_manage %}
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('incidents.edit', incident_id=incident.id) }}">
+          <i class="fa-solid fa-pen me-1"></i>Edit
+        </a>
+        <div class="d-flex gap-1">
+          {% for choice in statuses %}
+          {% if choice.value != incident.status.value %}
+          <form method="post" action="{{ url_for('incidents.status', incident_id=incident.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="{{ choice.value }}">
+            <button type="submit" class="btn btn-ghost btn-sm">Mark {{ choice.value|title }}</button>
+          </form>
+          {% endif %}
+          {% endfor %}
+        </div>
+        {% if can_delete %}
+        <form method="post" action="{{ url_for('incidents.delete', incident_id=incident.id) }}"
+              onsubmit="return confirm('Delete incident \'{{ incident.title }}\' permanently?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-ghost btn-sm" style="color:#f87171">
+            <i class="fa-solid fa-trash me-1"></i>Delete
+          </button>
+        </form>
+        {% endif %}
+      </div>
+      {% else %}
+      <span class="list-secondary">You have read-only access to this incident.</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-5">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Linked alerts</h3>
+      {% if incident.alerts %}
+      <ul class="list-group list-group-flush panel-list">
+        {% for alert in incident.alerts|sort(attribute="created_at", reverse=True) %}
+        <li class="list-group-item panel-list-item">
+          <span class="list-primary">{{ alert.message }}</span>
+          <span class="list-secondary d-block">
+            {{ alert.channel.value|title }} &middot; {{ alert.status.value|title }}
+            &middot; {{ alert.created_at.strftime("%d %b, %H:%M") }}
+          </span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty-panel"><i class="fa-solid fa-bell-slash"></i><p>No alerts linked yet</p></div>
+      {% endif %}
+    </div>
+
+    <div class="card glass mt-3">
+      <h3 class="panel-title mb-3">Evidence</h3>
+      {% if incident.evidence %}
+      <ul class="list-group list-group-flush panel-list">
+        {% for piece in incident.evidence %}
+        <li class="list-group-item panel-list-item">
+          <span class="list-primary">{{ piece.filename }}</span>
+          <span class="list-secondary d-block">{{ piece.evidence_type.value|title }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty-panel"><i class="fa-solid fa-folder-open"></i><p>No evidence captured yet</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

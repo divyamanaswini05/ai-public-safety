@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Evidence — {{ app_name }}{% endblock %}
+{% block page_title %}Evidence{% endblock %}
+
+{% block content %}
+{% set can_manage = current_user.has_role("admin", "operator") %}
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div class="d-flex gap-2 flex-wrap">
+    <span class="badge-soft muted"><i class="fa-solid fa-folder-open me-1"></i>{{ evidence_items|length }} items</span>
+    {% for t in ["image", "video"] %}
+    {% set url = url_for('evidence.index', type=t if filters.evidence_type != t else none, incident_id=filters.incident_id) %}
+    <a class="badge-soft chip {% if filters.evidence_type == t %}active{% endif %}" href="{{ url }}">
+      {{ t|title }}
+    </a>
+    {% endfor %}
+  </div>
+  {% if can_manage %}
+  <a class="btn btn-accent btn-sm" href="{{ url_for('evidence.upload') }}">
+    <i class="fa-solid fa-upload me-1"></i>Upload evidence
+  </a>
+  {% endif %}
+</div>
+
+{% if evidence_items %}
+<div class="card glass">
+  <div class="table-responsive">
+    <table class="table table-borderless table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>File</th>
+          <th>Type</th>
+          <th>Incident</th>
+          <th>Size</th>
+          <th>Captured</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in evidence_items %}
+        <tr>
+          <td>
+            <span class="d-flex align-items-center gap-2">
+              <span class="camera-thumb"><i class="fa-solid {{ 'fa-image' if item.evidence_type.value == 'image' else 'fa-film' }}"></i></span>
+              <span class="list-primary">{{ item.file_name }}</span>
+            </span>
+          </td>
+          <td><span class="badge-soft info">{{ item.evidence_type.value|title }}</span></td>
+          <td class="list-secondary">{{ item.incident.title if item.incident else "—" }}</td>
+          <td class="list-secondary">{{ "%.1f KB"|format(item.file_size / 1024) if item.file_size else "—" }}</td>
+          <td class="list-secondary">{{ item.captured_at.strftime("%d %b, %H:%M") }}</td>
+          <td class="text-end">
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('evidence.detail', evidence_id=item.id) }}">
+              <i class="fa-solid fa-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card glass">
+  <div class="empty-panel">
+    <i class="fa-solid fa-folder-open"></i>
+    <p>No evidence recorded yet.</p>
+    {% if can_manage %}
+    <a class="btn btn-accent btn-sm mt-2" href="{{ url_for('evidence.upload') }}">
+      <i class="fa-solid fa-upload me-1"></i>Upload first evidence
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

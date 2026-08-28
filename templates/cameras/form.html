@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} — {{ app_name }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-8 col-xl-7">
+    <div class="card glass">
+      <form method="post" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div class="row g-3">
+          <div class="col-md-7">
+            {{ form.name.label(class="form-label") }}
+            {{ form.name(class="form-control", autofocus=true) }}
+            {% for error in form.name.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="col-md-5">
+            {{ form.location.label(class="form-label") }}
+            {{ form.location(class="form-control", placeholder="e.g. Main lobby") }}
+            {% for error in form.location.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+          </div>
+
+          <div class="col-md-6">
+            {{ form.source_type.label(class="form-label") }}
+            {{ form.source_type(class="form-select") }}
+            {% for error in form.source_type.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="col-md-6">
+            {{ form.source_url.label(class="form-label") }}
+            {{ form.source_url(class="form-control", placeholder="rtsp://host:554/stream") }}
+            {% for error in form.source_url.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+          </div>
+
+          <div class="col-md-6">
+            {{ form.ip_address.label(class="form-label") }}
+            {{ form.ip_address(class="form-control", placeholder="192.168.1.50") }}
+            {% for error in form.ip_address.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="col-md-6">
+            {{ form.port.label(class="form-label") }}
+            {{ form.port(class="form-control", placeholder="554") }}
+            {% for error in form.port.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+          </div>
+
+          <div class="col-md-6">
+            {{ form.username.label(class="form-label") }}
+            {{ form.username(class="form-control", placeholder="Optional RTSP user") }}
+            {% for error in form.username.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="col-md-6">
+            {{ form.password.label(class="form-label") }}
+            {{ form.password(class="form-control", placeholder="Leave blank to keep the current password" if camera else "Optional stream password") }}
+            {% for error in form.password.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+          </div>
+
+          <div class="col-md-6">
+            {{ form.latitude.label(class="form-label") }}
+            {{ form.latitude(class="form-control", placeholder="e.g. 40.7128") }}
+            {% for error in form.latitude.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="col-md-6">
+            {{ form.longitude.label(class="form-label") }}
+            {{ form.longitude(class="form-control", placeholder="e.g. -74.0060") }}
+            {% for error in form.longitude.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-4">
+          <a class="btn btn-ghost" href="{{ url_for('cameras.detail', camera_id=camera.id) if camera else url_for('cameras.index') }}">
+            <i class="fa-solid fa-arrow-left me-1"></i>Cancel
+          </a>
+          {{ form.submit(class="btn btn-accent") }}
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

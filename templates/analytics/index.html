@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics — {{ app_name }}{% endblock %}
+{% block page_title %}Analytics{% endblock %}
+
+{% block content %}
+<div class="row g-3" id="statsCards">
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card glass text-center py-3">
+      <span class="list-secondary">Cameras</span>
+      <span class="list-primary fs-4" id="statCameras">—</span>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card glass text-center py-3">
+      <span class="list-secondary">Incidents</span>
+      <span class="list-primary fs-4" id="statIncidents">—</span>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card glass text-center py-3">
+      <span class="list-secondary">Alerts</span>
+      <span class="list-primary fs-4" id="statAlerts">—</span>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card glass text-center py-3">
+      <span class="list-secondary">Evidence</span>
+      <span class="list-primary fs-4" id="statEvidence">—</span>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card glass text-center py-3">
+      <span class="list-secondary">Users</span>
+      <span class="list-primary fs-4" id="statUsers">—</span>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-12 col-xl-8">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Incidents — last 7 days</h3>
+      <canvas id="chartTimeline" height="100"></canvas>
+    </div>
+  </div>
+  <div class="col-12 col-xl-4">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">By type</h3>
+      <canvas id="chartType" height="160"></canvas>
+    </div>
+  </div>
+  <div class="col-12 col-xl-4">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">By severity</h3>
+      <canvas id="chartSeverity" height="160"></canvas>
+    </div>
+  </div>
+  <div class="col-12 col-xl-4">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Incident status</h3>
+      <canvas id="chartIncidentStatus" height="160"></canvas>
+    </div>
+  </div>
+  <div class="col-12 col-xl-4">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Alert priority</h3>
+      <canvas id="chartAlertPriority" height="160"></canvas>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const COLORS = {
+  fire: '#f87171', smoke: '#fbbf24', weapon: '#ef4444', crowd: '#a78bfa',
+  intrusion: '#fb923c', person: '#38bdf8', unknown: '#94a3b8',
+  low: '#94a3b8', medium: '#fbbf24', high: '#fb923c', critical: '#ef4444',
+  open: '#f87171', investigating: '#fbbf24', resolved: '#4ade80', closed: '#94a3b8',
+  pending: '#fbbf24', sent: '#38bdf8', acknowledged: '#4ade80', expired: '#94a3b8',
+};
+function colorFor(key) { return COLORS[key] || '#94a3b8'; }
+
+fetch('/analytics/data.json').then(r => r.json()).then(data => {
+  const o = data.overview;
+  document.getElementById('statCameras').textContent = o.cameras;
+  document.getElementById('statIncidents').textContent = o.incidents;
+  document.getElementById('statAlerts').textContent = o.alerts;
+  document.getElementById('statEvidence').textContent = o.evidence;
+  document.getElementById('statUsers').textContent = o.users;
+
+  const labels7 = Object.keys(data.incidents_last_7_days).map(d => d.slice(5));
+  const values7 = Object.values(data.incidents_last_7_days);
+  new Chart(document.getElementById('chartTimeline'), {
+    type: 'bar',
+    data: {
+      labels: labels7,
+      datasets: [{ label: 'Incidents', data: values7,
+        backgroundColor: 'rgba(56,189,248,0.45)', borderColor: '#38bdf8', borderWidth: 1 }]
+    },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } } }
+  });
+
+  function makeDoughnut(canvasId, obj) {
+    const keys = Object.keys(obj), vals = Object.values(obj);
+    new Chart(document.getElementById(canvasId), {
+      type: 'doughnut',
+      data: { labels: keys.map(k => k.charAt(0).toUpperCase() + k.slice(1)),
+        datasets: [{ data: vals, backgroundColor: keys.map(colorFor), borderWidth: 0 }] },
+      options: { plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', boxWidth: 12 } } } }
+    });
+  }
+  makeDoughnut('chartType', data.incidents_by_type);
+  makeDoughnut('chartSeverity', data.incidents_by_severity);
+  makeDoughnut('chartIncidentStatus', data.incidents_by_status);
+  makeDoughnut('chartAlertPriority', data.alerts_by_priority);
+});
+</script>
+{% endblock %}

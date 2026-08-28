@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}{{ camera.name }} — {{ app_name }}{% endblock %}
+{% block page_title %}{{ camera.name }}{% endblock %}
+
+{% block content %}
+{% set can_manage = current_user.has_role("admin", "operator") %}
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div>
+    {% if camera.status.value == "online" %}<span class="badge-soft success"><i class="fa-solid fa-circle me-1"></i>Online</span>
+    {% elif camera.status.value == "offline" %}<span class="badge-soft warning"><i class="fa-solid fa-circle me-1"></i>Offline</span>
+    {% else %}<span class="badge-soft danger"><i class="fa-solid fa-circle me-1"></i>Disabled</span>{% endif %}
+    <span class="badge-soft info ms-1">{{ camera.source_type.value|upper }}</span>
+    {% if not camera.is_active %}<span class="badge-soft muted ms-1">Inactive</span>{% endif %}
+  </div>
+  <a class="btn btn-ghost btn-sm" href="{{ url_for('cameras.index') }}">
+    <i class="fa-solid fa-arrow-left me-1"></i>All cameras
+  </a>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-xl-7">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Configuration</h3>
+      <dl class="detail-grid">
+        <div><dt>Name</dt><dd>{{ camera.name }}</dd></div>
+        <div><dt>Location</dt><dd>{{ camera.location or "—" }}</dd></div>
+        <div><dt>Source type</dt><dd>{{ camera.source_type.value|title }}</dd></div>
+        <div><dt>IP address</dt><dd>{{ camera.ip_address or "—" }}</dd></div>
+        <div><dt>Port</dt><dd>{{ camera.port or "—" }}</dd></div>
+        <div><dt>Stream URL</dt><dd class="text-break">{{ camera.source_url or "—" }}</dd></div>
+        <div><dt>Username</dt><dd>{{ camera.username or "—" }}</dd></div>
+        <div><dt>Password</dt><dd>{{ "•••••••• (stored encrypted)" if has_credentials else "Not set" }}</dd></div>
+        <div><dt>Coordinates</dt>
+          <dd>{% if camera.latitude is not none %}{{ camera.latitude }}, {{ camera.longitude }}{% else %}—{% endif %}</dd>
+        </div>
+      </dl>
+
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        {% if can_manage %}
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('cameras.edit', camera_id=camera.id) }}">
+          <i class="fa-solid fa-pen me-1"></i>Edit
+        </a>
+        <form method="post" action="{{ url_for('cameras.check', camera_id=camera.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-ghost btn-sm">
+            <i class="fa-solid fa-stethoscope me-1"></i>Run health check
+          </button>
+        </form>
+        <div class="d-flex gap-1">
+          {% for choice, label in [("online", "Online"), ("offline", "Offline"), ("disabled", "Disabled")] %}
+          <form method="post" action="{{ url_for('cameras.status', camera_id=camera.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="{{ choice }}">
+            <button type="submit" class="btn btn-ghost btn-sm">{{ label }}</button>
+          </form>
+          {% endfor %}
+        </div>
+        <form method="post" action="{{ url_for('cameras.delete', camera_id=camera.id) }}"
+              onsubmit="return confirm('Delete camera {{ camera.name }} permanently?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-ghost btn-sm" style="color:#f87171">
+            <i class="fa-solid fa-trash me-1"></i>Delete
+          </button>
+        </form>
+        {% else %}
+        <span class="list-secondary">You have read-only access to this camera.</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-5">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Health</h3>
+      <dl class="detail-grid">
+        <div><dt>Status</dt><dd>{{ camera.status.value|title }}</dd></div>
+        <div><dt>Health score</dt>
+          <dd>{% if camera.health_score is not none %}{{ camera.health_score|int }}%{% else %}—{% endif %}</dd>
+        </div>
+        <div><dt>Last seen</dt>
+          <dd>{{ camera.last_seen_at.strftime("%d %b %Y, %H:%M:%S") if camera.last_seen_at else "Never" }}</dd>
+        </div>
+        <div><dt>Registered</dt><dd>{{ camera.created_at.strftime("%d %b %Y, %H:%M") }}</dd></div>
+      </dl>
+      <div class="health-track mt-3">
+        <div class="health-fill {{ 'health-good' if (camera.health_score or 0) >= 75 else 'health-warn' if (camera.health_score or 0) >= 40 else 'health-bad' }}"
+             style="width: {{ camera.health_score or 0 }}%"></div>
+      </div>
+      <span class="list-secondary">{{ camera.health_score|int if camera.health_score is not none else 0 }}% health</span>
+    </div>
+
+    <div class="card glass mt-3">
+      <h3 class="panel-title mb-3">Recent incidents</h3>
+      {% if camera.incidents %}
+      <ul class="list-group list-group-flush panel-list">
+        {% for incident in camera.incidents|sort(attribute="detected_at", reverse=True)|list[:5] %}
+        <li class="list-group-item panel-list-item">
+          <span class="list-primary">{{ incident.title }}</span>
+          <span class="list-secondary d-block">
+            {{ incident.incident_type.value|title }} &middot; {{ incident.severity.value|title }}
+            &middot; {{ incident.detected_at.strftime("%d %b, %H:%M") }}
+          </span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty-panel"><i class="fa-solid fa-inbox"></i><p>No incidents for this camera</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

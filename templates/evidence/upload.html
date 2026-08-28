@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Evidence — {{ app_name }}{% endblock %}
+{% block page_title %}Upload Evidence{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-8 col-xl-7">
+    <div class="card glass">
+      <form method="post" enctype="multipart/form-data" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div class="mb-3">
+          <label class="form-label">Incident</label>
+          <select class="form-select" name="incident_id" required>
+            <option value="">Select an incident…</option>
+            {% for inc in incidents %}
+            <option value="{{ inc.id }}" {% if preselect_incident_id == inc.id %}selected{% endif %}>
+              {{ inc.title }} — {{ inc.incident_type.value|title }} ({{ inc.detected_at.strftime("%d %b %Y") }})
+            </option>
+            {% endfor %}
+          </select>
+          {% for error in form.incident_id.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="mb-3">
+          {{ form.evidence_type.label(class="form-label") }}
+          {{ form.evidence_type(class="form-select") }}
+          {% for error in form.evidence_type.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="mb-3">
+          {{ form.file.label(class="form-label") }}
+          {{ form.file(class="form-control") }}
+          {% for error in form.file.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+          <div class="form-text">Max 50 MB. Images and videos accepted.</div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-4">
+          <a class="btn btn-ghost" href="{{ url_for('evidence.index') }}">
+            <i class="fa-solid fa-arrow-left me-1"></i>Cancel
+          </a>
+          {{ form.submit(class="btn btn-accent") }}
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

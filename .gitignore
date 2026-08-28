@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Database
+instance/*.db
+instance/*.sqlite*
+instance/storage/evidence/*
+instance/storage/alerts/*
+
+# Runtime uploads & captured evidence
+uploads/evidence/*
+uploads/alerts/*
+ai/weights/*
+!uploads/evidence/.gitkeep
+!uploads/alerts/.gitkeep
+!ai/weights/.gitkeep
+
+# YOLO model weights
+yolov8n.pt
+
+# Runtime storage
+instance/storage/evidence/*
+instance/storage/alerts/*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log

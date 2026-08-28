@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Reports — {{ app_name }}{% endblock %}
+{% block page_title %}Reports{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-12 col-xl-6">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Incident reports</h3>
+      <p class="list-secondary mb-3">Export incident data as PDF or Excel. Filter by status or type before downloading.</p>
+      <form method="get" class="row g-2 mb-3" id="incidentFilter">
+        <div class="col-md-5">
+          <select class="form-select form-select-sm" name="status">
+            <option value="">All statuses</option>
+            {% for s in ["open", "investigating", "resolved", "closed"] %}
+            <option value="{{ s }}">{{ s|title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-5">
+          <select class="form-select form-select-sm" name="type">
+            <option value="">All types</option>
+            {% for t in ["fire", "smoke", "weapon", "crowd", "intrusion", "person"] %}
+            <option value="{{ t }}">{{ t|title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </form>
+      <div class="d-flex gap-2">
+        <a class="btn btn-accent btn-sm" id="dlPdf" href="{{ url_for('reports.incidents_pdf') }}">
+          <i class="fa-solid fa-file-pdf me-1"></i>Download PDF
+        </a>
+        <a class="btn btn-accent btn-sm" id="dlXlsx" href="{{ url_for('reports.incidents_excel') }}">
+          <i class="fa-solid fa-file-excel me-1"></i>Download Excel
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-6">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Camera report</h3>
+      <p class="list-secondary mb-3">Export a PDF summary of all registered cameras, their status and health scores.</p>
+      <a class="btn btn-accent btn-sm" href="{{ url_for('reports.cameras_pdf') }}">
+        <i class="fa-solid fa-file-pdf me-1"></i>Download camera report
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateLinks() {
+  const params = new URLSearchParams();
+  const s = document.querySelector('[name="status"]').value;
+  const t = document.querySelector('[name="type"]').value;
+  if (s) params.set('status', s);
+  if (t) params.set('type', t);
+  const qs = params.toString();
+  const base = window.location.origin;
+  document.getElementById('dlPdf').href = base + '/reports/incidents.pdf' + (qs ? '?' + qs : '');
+  document.getElementById('dlXlsx').href = base + '/reports/incidents.xlsx' + (qs ? '?' + qs : '');
+}
+document.querySelector('[name="status"]').addEventListener('change', updateLinks);
+document.querySelector('[name="type"]').addEventListener('change', updateLinks);
+</script>
+{% endblock %}

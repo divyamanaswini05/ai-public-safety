@@ -1,0 +1,9 @@
+Hi {{ user.full_name }},
+
+Welcome to SentinelAI. Please verify your email address by opening the link below:
+
+{{ link }}
+
+This link expires in 24 hours. If you did not create this account, you can safely ignore this email.
+
+— The SentinelAI Team

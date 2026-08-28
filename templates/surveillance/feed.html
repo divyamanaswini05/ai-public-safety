@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}{{ camera.name }} — Live Feed — {{ app_name }}{% endblock %}
+{% block page_title %}{{ camera.name }}{% endblock %}
+
+{% block content %}
+<div class="surv-feed-toolbar">
+  <div class="d-flex align-items-center flex-wrap gap-2">
+    <span class="surv-badge surv-status {{ camera.status.value }}" data-surv-status>
+      {{ "LIVE" if camera.status.value == "online" else camera.status.value|upper }}
+    </span>
+    <span class="badge-soft info">{{ camera.source_type.value|upper }}</span>
+    {% if not camera.is_active %}<span class="badge-soft muted">Inactive</span>{% endif %}
+    <span class="list-secondary" data-surv-lastseen>
+      Last seen: {{ camera.last_seen_at.strftime("%d %b %Y, %H:%M:%S") if camera.last_seen_at else "Never" }}
+    </span>
+  </div>
+  <a class="btn btn-ghost btn-sm" href="{{ url_for('surveillance.index') }}">
+    <i class="fa-solid fa-table-cells-large me-1"></i>Grid view
+  </a>
+</div>
+
+<div class="surv-feed-stage">
+  {% if camera.source_url and camera.source_type.value != "webcam" %}
+  <img class="live-feed" src="{{ camera.source_url }}" alt="{{ camera.name }}" id="feedImage">
+  {% else %}
+  <div class="no-signal">
+    <i class="fa-solid fa-video-slash"></i>
+    <span>No signal</span>
+  </div>
+  {% endif %}
+  <div class="surv-feed-bar">
+    <span><i class="fa-solid fa-location-dot me-1"></i>{{ camera.location or "No location" }}</span>
+    <span data-surv-health>{{ (camera.health_score or 0)|int }}% health</span>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-8">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Camera details</h3>
+      <dl class="detail-grid">
+        <div><dt>Location</dt><dd>{{ camera.location or "—" }}</dd></div>
+        <div><dt>Source type</dt><dd>{{ camera.source_type.value|title }}</dd></div>
+        <div><dt>IP address</dt><dd>{{ camera.ip_address or "—" }}</dd></div>
+        <div><dt>Port</dt><dd>{{ camera.port or "—" }}</dd></div>
+        <div><dt>Stream URL</dt><dd class="text-break">{{ camera.source_url or "—" }}</dd></div>
+        <div><dt>Status</dt><dd>{{ camera.status.value|title }}</dd></div>
+      </dl>
+    </div>
+  </div>
+  <div class="col-12 col-lg-4">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Recent incidents</h3>
+      {% if incidents %}
+      <ul class="list-group list-group-flush panel-list">
+        {% for incident in incidents %}
+        <li class="list-group-item panel-list-item">
+          <span class="list-primary">{{ incident.title }}</span>
+          <span class="list-secondary d-block">
+            {{ incident.incident_type.value|title }} &middot; {{ incident.severity.value|title }}
+            &middot; {{ incident.detected_at.strftime("%d %b, %H:%M") }}
+          </span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty-panel"><i class="fa-solid fa-inbox"></i><p>No incidents for this camera</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/surveillance.js') }}"></script>
+<script>
+  (function () {
+    "use strict";
+    var cameraId = {{ camera.id }};
+
+    function formatLastSeen(iso) {
+      if (!iso) return "Never";
+      var d = new Date(iso);
+      return isNaN(d.getTime()) ? "Never" : d.toLocaleString();
+    }
+
+    function refresh() {
+      fetch("/surveillance/status")
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var cam = (data.cameras || []).filter(function (c) { return c.id === cameraId; })[0];
+          if (!cam) return;
+          var badge = document.querySelector("[data-surv-status]");
+          if (badge) {
+            badge.textContent = cam.status === "online" ? "LIVE" : cam.status.toUpperCase();
+            badge.className = "surv-badge surv-status " + cam.status;
+          }
+          var seen = document.querySelector("[data-surv-lastseen]");
+          if (seen) seen.textContent = "Last seen: " + formatLastSeen(cam.last_seen);
+          var health = document.querySelector("[data-surv-health]");
+          if (health) health.textContent = (cam.health == null ? 0 : Math.round(cam.health)) + "% health";
+        })
+        .catch(function () {});
+    }
+
+    var image = document.getElementById("feedImage");
+    if (image) {
+      image.addEventListener("error", function () {
+        var sig = document.createElement("div");
+        sig.className = "no-signal";
+        sig.innerHTML = '<i class="fa-solid fa-video-slash"></i><span>No signal</span>';
+        image.parentNode.insertBefore(sig, image);
+        image.remove();
+      });
+    }
+
+    refresh();
+    setInterval(refresh, 15000);
+  })();
+</script>
+{% endblock %}

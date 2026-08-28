@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Cameras — {{ app_name }}{% endblock %}
+{% block page_title %}Cameras{% endblock %}
+
+{% block content %}
+{% set can_manage = current_user.has_role("admin", "operator") %}
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div class="d-flex gap-2 flex-wrap">
+    <span class="badge-soft muted"><i class="fa-solid fa-video me-1"></i>{{ cameras|length }} total</span>
+    <span class="badge-soft success"><i class="fa-solid fa-circle me-1"></i>
+      {{ cameras|selectattr("status.value", "equalto", "online")|list|length }} online</span>
+    <span class="badge-soft warning"><i class="fa-solid fa-circle me-1"></i>
+      {{ cameras|selectattr("status.value", "equalto", "offline")|list|length }} offline</span>
+    <span class="badge-soft danger"><i class="fa-solid fa-circle me-1"></i>
+      {{ cameras|selectattr("status.value", "equalto", "disabled")|list|length }} disabled</span>
+  </div>
+  {% if can_manage %}
+  <a class="btn btn-accent btn-sm" href="{{ url_for('cameras.new') }}">
+    <i class="fa-solid fa-plus me-1"></i>Add Camera
+  </a>
+  {% endif %}
+</div>
+
+{% if cameras %}
+<div class="card glass">
+  <div class="table-responsive">
+    <table class="table table-borderless table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Camera</th>
+          <th>Location</th>
+          <th>Source</th>
+          <th>Status</th>
+          <th>Health</th>
+          <th>Last seen</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for camera in cameras %}
+        <tr>
+          <td>
+            <span class="d-flex align-items-center gap-2">
+              <span class="camera-thumb"><i class="fa-solid fa-video"></i></span>
+              <span>
+                <span class="list-primary">{{ camera.name }}</span>
+                <span class="list-secondary d-block">{{ camera.ip_address or camera.source_url or "—" }}</span>
+              </span>
+            </span>
+          </td>
+          <td class="list-secondary">{{ camera.location or "—" }}</td>
+          <td><span class="badge-soft info">{{ camera.source_type.value|upper }}</span></td>
+          <td>
+            {% if camera.status.value == "online" %}<span class="badge-soft success">Online</span>
+            {% elif camera.status.value == "offline" %}<span class="badge-soft warning">Offline</span>
+            {% else %}<span class="badge-soft danger">Disabled</span>{% endif %}
+          </td>
+          <td style="min-width: 110px;">
+            {% if camera.health_score is not none %}
+            <div class="health-track">
+              <div class="health-fill {{ 'health-good' if camera.health_score >= 75 else 'health-warn' if camera.health_score >= 40 else 'health-bad' }}"
+                   style="width: {{ camera.health_score }}%"></div>
+            </div>
+            <span class="list-secondary">{{ camera.health_score|int }}%</span>
+            {% else %}<span class="list-secondary">—</span>{% endif %}
+          </td>
+          <td class="list-secondary">
+            {{ camera.last_seen_at.strftime("%d %b, %H:%M") if camera.last_seen_at else "Never" }}
+          </td>
+          <td class="text-end">
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('cameras.detail', camera_id=camera.id) }}">
+              <i class="fa-solid fa-eye"></i>
+            </a>
+            {% if can_manage %}
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('cameras.edit', camera_id=camera.id) }}">
+              <i class="fa-solid fa-pen"></i>
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card glass">
+  <div class="empty-panel">
+    <i class="fa-solid fa-video-slash"></i>
+    <p>No cameras registered yet.</p>
+    {% if can_manage %}
+    <a class="btn btn-accent btn-sm mt-2" href="{{ url_for('cameras.new') }}">
+      <i class="fa-solid fa-plus me-1"></i>Add your first camera
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

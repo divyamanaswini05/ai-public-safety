@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Live Surveillance — {{ app_name }}{% endblock %}
+{% block page_title %}Live Surveillance{% endblock %}
+
+{% block content %}
+<div class="surv-toolbar">
+  <div class="surv-toolbar-left">
+    <div class="surv-search">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="search" id="survSearch" class="form-control form-control-sm"
+             placeholder="Search cameras…" autocomplete="off">
+    </div>
+    <div class="btn-group btn-group-sm surv-filters" role="group" aria-label="Filter by status">
+      <button type="button" class="btn btn-ghost active" data-surv-filter="all">
+        All <span class="count" id="countAll">{{ total }}</span>
+      </button>
+      <button type="button" class="btn btn-ghost" data-surv-filter="online">
+        Online <span class="count" id="countOnline">{{ counts.online }}</span>
+      </button>
+      <button type="button" class="btn btn-ghost" data-surv-filter="offline">
+        Offline <span class="count" id="countOffline">{{ counts.offline }}</span>
+      </button>
+      <button type="button" class="btn btn-ghost" data-surv-filter="disabled">
+        Disabled <span class="count" id="countDisabled">{{ counts.disabled }}</span>
+      </button>
+    </div>
+  </div>
+  <div class="surv-toolbar-right">
+    <label class="surv-toggle">
+      <input type="checkbox" id="survAutoRefresh" checked>
+      <span>Auto-refresh</span>
+    </label>
+    <div class="btn-group btn-group-sm" role="group" aria-label="Grid size">
+      <button type="button" class="btn btn-ghost surv-gridsize active" data-cols="3" title="3 columns">3</button>
+      <button type="button" class="btn btn-ghost surv-gridsize" data-cols="2" title="2 columns">2</button>
+      <button type="button" class="btn btn-ghost surv-gridsize" data-cols="1" title="1 column">1</button>
+    </div>
+    <button type="button" class="btn btn-ghost btn-sm" id="survRefreshNow"
+            title="Refresh now" aria-label="Refresh now">
+      <i class="fa-solid fa-rotate"></i>
+    </button>
+  </div>
+</div>
+
+{% if cameras %}
+<div class="surv-grid" id="survGrid" data-cols="3">
+  {% for camera in cameras %}
+  <article class="card surv-tile" data-cam-id="{{ camera.id }}" data-status="{{ camera.status.value }}">
+    <div class="surv-preview-wrap">
+      <a class="surv-preview" href="{{ url_for('surveillance.feed', camera_id=camera.id) }}"
+         title="Open {{ camera.name }} feed">
+        {% if camera.source_url and camera.source_type.value != "webcam" %}
+        <img class="live-feed" src="{{ camera.source_url }}" alt="{{ camera.name }}" loading="lazy">
+        {% else %}
+        <div class="no-signal">
+          <i class="fa-solid fa-video-slash"></i>
+          <span>No signal</span>
+        </div>
+        {% endif %}
+        <span class="surv-badge surv-status {{ camera.status.value }}" data-surv-status>
+          {{ "LIVE" if camera.status.value == "online" else camera.status.value|upper }}
+        </span>
+        {% if camera.status.value == "online" %}<span class="surv-live-dot"></span>{% endif %}
+      </a>
+      <button type="button" class="surv-fullscreen" data-surv-fullscreen
+              title="Toggle fullscreen" aria-label="Toggle fullscreen">
+        <i class="fa-solid fa-expand"></i>
+      </button>
+    </div>
+    <div class="surv-meta">
+      <div class="surv-title">
+        <span class="surv-name">{{ camera.name }}</span>
+        <span class="surv-location">{{ camera.location or "—" }}</span>
+      </div>
+      <div class="surv-health">
+        <div class="health-track">
+          <div class="health-fill {{ 'health-good' if (camera.health_score or 0) >= 75 else 'health-warn' if (camera.health_score or 0) >= 40 else 'health-bad' }}"
+               style="width: {{ camera.health_score or 0 }}%"></div>
+        </div>
+        <span class="surv-health-label" data-surv-health>{{ (camera.health_score or 0)|int }}%</span>
+      </div>
+      <span class="surv-lastseen" data-surv-lastseen>
+        Last seen: {{ camera.last_seen_at.strftime("%d %b, %H:%M") if camera.last_seen_at else "Never" }}
+      </span>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card glass">
+  <div class="empty-panel">
+    <i class="fa-solid fa-video-slash"></i>
+    <p>No active cameras. Enable cameras in Camera Management.</p>
+    <a class="btn btn-accent btn-sm mt-2" href="{{ url_for('cameras.index') }}">
+      <i class="fa-solid fa-video me-1"></i>Go to Camera Management
+    </a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/surveillance.js') }}"></script>
+{% endblock %}

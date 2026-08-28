@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}{{ app_name }} — Home{% endblock %}
+{% block page_title %}Home{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-grid" aria-hidden="true"></div>
+  <div class="hero-badge">
+    <i class="fa-solid fa-microchip"></i>
+    <span>AI-Powered • Real-Time • 24/7</span>
+  </div>
+  <h1 class="hero-title">Public Safety, <span class="text-gradient">Watched &amp; Protected</span></h1>
+  <p class="hero-subtitle">
+    {{ app_name }} fuses computer vision, deep learning and emergency alerting into one
+    command-and-control platform — the same class of software used by airports, police
+    departments and smart-city operations centres.
+  </p>
+  <div class="hero-actions">
+    <a class="btn btn-accent" href="#modules">
+      <i class="fa-solid fa-satellite-dish me-2"></i>Explore Modules
+    </a>
+    <a class="btn btn-ghost" href="#architecture">
+      <i class="fa-solid fa-layer-group me-2"></i>System Architecture
+    </a>
+  </div>
+
+  <div class="hero-stats">
+    <div class="stat-card glass">
+      <i class="fa-solid fa-eye" style="color: #38bdf8"></i>
+      <div><strong>7+</strong><span>AI Detection Engines</span></div>
+    </div>
+    <div class="stat-card glass">
+      <i class="fa-solid fa-bolt" style="color: #22c55e"></i>
+      <div><strong>&lt; 1s</strong><span>Alert Response Time</span></div>
+    </div>
+    <div class="stat-card glass">
+      <i class="fa-solid fa-shield-halved" style="color: #f59e0b"></i>
+      <div><strong>24/7</strong><span>Autonomous Monitoring</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- Feature modules -->
+<section class="section" id="modules">
+  <div class="section-heading">
+    <span class="section-eyebrow">Detection Suite</span>
+    <h2>Intelligence Modules</h2>
+    <p>Every module is built as an independent service that publishes events to a unified alert pipeline.</p>
+  </div>
+
+  <div class="row g-4">
+    {% set features = [
+      ("fa-fire", "Fire & Smoke", "YOLOv8 model detects open flame and smoke plumes, raising priority alarms before a fire escalates.", "#f97316"),
+      ("fa-gun", "Weapon Detection", "Recognises guns, rifles and knives on live feeds with bounding boxes, confidence and threat scoring.", "#ef4444"),
+      ("fa-people-group", "Crowd Analysis", "Real-time people counting, density classification and heatmaps with configurable crowd thresholds.", "#38bdf8"),
+      ("fa-person-rays", "Intrusion Detection", "Polygon-based restricted zones trigger alerts the moment a subject enters a protected area.", "#a78bfa"),
+      ("fa-face-smile", "Face Recognition", "Identifies registered employees, flags blacklisted persons and logs unknown visitors.", "#22c55e"),
+      ("fa-video", "Live Surveillance", "Multi-camera wall with bounding-box overlays, FPS counter, timestamps and per-camera health.", "#0ea5e9"),
+      ("fa-folder-open", "Evidence Management", "Automatic screenshot and video capture of every incident with searchable, exportable evidence.", "#f59e0b"),
+      ("fa-chart-line", "Analytics & Reports", "Daily/weekly/monthly trends, top incident charts and PDF / Excel / CSV report exports.", "#818cf8"),
+    ] %}
+    {% for icon, title, text, color in features %}
+      <div class="col-md-6 col-xl-3">
+        <div class="card glass feature-card h-100">
+          <div class="feature-icon" style="--accent-color: {{ color }}">
+            <i class="fa-solid {{ icon }}"></i>
+          </div>
+          <h3 class="feature-title">{{ title }}</h3>
+          <p class="feature-text">{{ text }}</p>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- Architecture -->
+<section class="section" id="architecture">
+  <div class="section-heading">
+    <span class="section-eyebrow">How It Works</span>
+    <h2>System Architecture</h2>
+    <p>From raw camera frames to investigator-ready evidence in a single pipeline.</p>
+  </div>
+
+  <div class="row g-4">
+    {% set steps = [
+      ("fa-camera", "Capture", "Webcams and IP/RTSP cameras stream frames into the detection engine at a controlled FPS."),
+      ("fa-brain", "Analyze", "YOLOv8 inference runs per frame — objects are classified, confidence is scored and zones are checked."),
+      ("fa-bell", "Alert", "Incidents create Alerts that fan out to the dashboard, browsers, email and SMS instantly."),
+      ("fa-folder-open", "Record", "Screenshots and short clips are saved as immutable evidence linked to the incident."),
+    ] %}
+    {% for icon, title, text in steps %}
+      <div class="col-md-6 col-xl-3">
+        <div class="card glass step-card h-100">
+          <span class="step-number">{{ "%02d" % loop.index }}</span>
+          <i class="fa-solid {{ icon }}"></i>
+          <h3>{{ title }}</h3>
+          <p>{{ text }}</p>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- Stack -->
+<section class="section">
+  <div class="section-heading">
+    <span class="section-eyebrow">Technology</span>
+    <h2>Built On A Proven Stack</h2>
+  </div>
+  <div class="stack-chips">
+    {% for chip in ["Python 3.11", "Flask", "SQLite / MySQL", "YOLOv8", "OpenCV", "NumPy", "Socket.IO", "Bootstrap 5", "Chart.js", "Gunicorn", "Nginx", "Docker"] %}
+      <span class="chip">{{ chip }}</span>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

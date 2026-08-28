@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — {{ app_name }}{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- KPI cards -->
+<div class="row g-3 mb-3">
+  <div class="col-6 col-xl-3">
+    <div class="card glass kpi-card">
+      <div class="kpi-icon" style="color: #38bdf8"><i class="fa-solid fa-video"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-value">{{ kpis.cameras.online }}<small> / {{ kpis.cameras.total }}</small></span>
+        <span class="kpi-label">Cameras Online</span>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card glass kpi-card">
+      <div class="kpi-icon" style="color: #f59e0b"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-value">{{ kpis.incidents.active }}<small> / {{ kpis.incidents.total }}</small></span>
+        <span class="kpi-label">Active Incidents</span>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card glass kpi-card">
+      <div class="kpi-icon" style="color: #ef4444"><i class="fa-solid fa-bell"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-value">{{ kpis.alerts.unhandled }}<small> / {{ kpis.alerts.total }}</small></span>
+        <span class="kpi-label">Unhandled Alerts</span>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card glass kpi-card">
+      <div class="kpi-icon" style="color: #22c55e"><i class="fa-solid fa-user-shield"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-value">{{ kpis.users.verified }}<small> / {{ kpis.users.total }}</small></span>
+        <span class="kpi-label">Verified Users</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-3 mb-3">
+  <div class="col-12 col-xl-8">
+    <div class="card glass chart-panel">
+      <h3 class="panel-title">Incident Trend</h3>
+      <p class="panel-subtitle">Events detected per day over the last 14 days</p>
+      <div class="chart-box"><canvas id="incidentTrendChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-12 col-xl-4">
+    <div class="card glass chart-panel">
+      <h3 class="panel-title">Incidents by Type</h3>
+      <p class="panel-subtitle">Detection category distribution</p>
+      <div class="chart-box"><canvas id="incidentTypeChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-12 col-xl-4">
+    <div class="card glass chart-panel">
+      <h3 class="panel-title">Camera Status</h3>
+      <p class="panel-subtitle">Operational state of all cameras</p>
+      <div class="chart-box"><canvas id="cameraStatusChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-12 col-xl-4">
+    <div class="card glass chart-panel">
+      <h3 class="panel-title">Incidents by Severity</h3>
+      <p class="panel-subtitle">Impact level of reported events</p>
+      <div class="chart-box"><canvas id="severityChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-12 col-xl-4">
+    <div class="card glass chart-panel">
+      <h3 class="panel-title">Alert Trend</h3>
+      <p class="panel-subtitle">Alerts raised per day over the last 14 days</p>
+      <div class="chart-box"><canvas id="alertTrendChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent activity -->
+<div class="row g-3">
+  <div class="col-12 col-xl-5">
+    <div class="card glass">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h3 class="panel-title mb-0">Recent Incidents</h3>
+      </div>
+      {% if recent_incidents %}
+      <div class="table-responsive">
+        <table class="table table-borderless table-sm mb-0">
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>Severity</th>
+              <th>Status</th>
+              <th>When</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for incident in recent_incidents %}
+            <tr>
+              <td>
+                <span class="list-primary">{{ incident.title }}</span>
+                <span class="list-secondary">{{ incident.incident_type.value|title }}</span>
+              </td>
+              <td>
+                {% if incident.severity.value == "critical" %}<span class="badge-soft danger">Critical</span>
+                {% elif incident.severity.value == "high" %}<span class="badge-soft warning">High</span>
+                {% elif incident.severity.value == "medium" %}<span class="badge-soft info">Medium</span>
+                {% else %}<span class="badge-soft muted">Low</span>{% endif %}
+              </td>
+              <td>
+                {% if incident.status.value == "open" %}<span class="badge-soft danger">Open</span>
+                {% elif incident.status.value == "investigating" %}<span class="badge-soft warning">Investigating</span>
+                {% elif incident.status.value == "resolved" %}<span class="badge-soft success">Resolved</span>
+                {% else %}<span class="badge-soft muted">Closed</span>{% endif %}
+              </td>
+              <td class="list-secondary">{{ incident.detected_at.strftime("%d %b, %H:%M") }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-panel"><i class="fa-solid fa-inbox"></i><p>No incidents yet</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-4">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Recent Alerts</h3>
+      {% if recent_alerts %}
+      <ul class="list-group list-group-flush panel-list">
+        {% for alert in recent_alerts %}
+        <li class="list-group-item panel-list-item">
+          <div class="d-flex align-items-start gap-3">
+            {% if alert.priority.value == "critical" %}<i class="fa-solid fa-bell panel-list-icon" style="color:#ef4444"></i>
+            {% elif alert.priority.value == "high" %}<i class="fa-solid fa-bell panel-list-icon" style="color:#f97316"></i>
+            {% elif alert.priority.value == "medium" %}<i class="fa-solid fa-bell panel-list-icon" style="color:#f59e0b"></i>
+            {% else %}<i class="fa-solid fa-bell panel-list-icon" style="color:#38bdf8"></i>{% endif %}
+            <div class="flex-grow-1">
+              <span class="list-primary">{{ alert.title }}</span>
+              <span class="list-secondary d-block">
+                {{ alert.priority.value|title }} priority
+                {% if alert.incident %} &middot; {{ alert.incident.incident_type.value|title }}{% endif %}
+              </span>
+            </div>
+            <span class="list-secondary text-nowrap">{{ alert.created_at.strftime("%d %b, %H:%M") }}</span>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty-panel"><i class="fa-regular fa-bell-slash"></i><p>No alerts yet</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-3">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Recent Activity</h3>
+      {% if recent_activity %}
+      <ul class="activity-list">
+        {% for entry in recent_activity %}
+        <li class="activity-item">
+          <span class="activity-icon"><i class="fa-solid fa-shield-halved"></i></span>
+          <div class="activity-body">
+            <span class="activity-action">{{ entry.action }}</span>
+            <span class="activity-meta d-block">
+              {{ entry.user.full_name if entry.user else "System" }} &middot; {{ entry.created_at.strftime("%d %b, %H:%M") }}
+            </span>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty-panel"><i class="fa-solid fa-shield-halved"></i><p>No activity yet</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.SENTINEL_DASHBOARD = {{ chart_data | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

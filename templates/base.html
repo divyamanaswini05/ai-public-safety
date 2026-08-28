@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="AI-Based Public Safety Surveillance and Emergency Alert System">
+  <title>{% block title %}{{ app_name }} — Public Safety Surveillance{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+  <!-- Inter font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Application stylesheet -->
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+  <!-- Page loading overlay -->
+  <div class="page-loader" id="pageLoader" aria-hidden="true">
+    <div class="loader-inner">
+      <span class="loader-spinner"></span>
+      <p>{{ app_name }}</p>
+    </div>
+  </div>
+
+  <!-- ============================= Sidebar ============================= -->
+  <aside class="sidebar" id="appSidebar">
+    <div class="sidebar-brand">
+      <a class="brand-link" href="{{ url_for('main.index') }}">
+        <span class="brand-icon"><i class="fa-solid fa-shield-halved"></i></span>
+        <span class="brand-text">Sentinel<span>AI</span></span>
+      </a>
+    </div>
+
+    <nav class="sidebar-nav">
+      {% set nav_groups = [
+        ("Overview", [
+          ("Home", "main.index", "fa-house"),
+          ("Dashboard", "dashboard.index", "fa-gauge-high"),
+          ("Live Surveillance", "surveillance.index", "fa-video"),
+        ]),
+        ("Detection", [
+          ("AI Engine", "ai.index", "fa-microchip"),
+          ("Fire & Smoke", "fire_smoke.index", "fa-fire"),
+          ("Weapon Detection", "weapon.index", "fa-gun"),
+          ("Crowd Analysis", "crowd.index", "fa-people-group"),
+          ("Intrusion Detection", "intrusion.index", "fa-person-rays"),
+          ("Face Recognition", "face.index", "fa-face-smile"),
+        ]),
+        ("Management", [
+          ("Camera Management", "cameras.index", "fa-camera"),
+          ("Incidents", "incidents.index", "fa-triangle-exclamation"),
+          ("Alerts", "alerts.index", "fa-bell"),
+          ("Evidence", "evidence.index", "fa-folder-open"),
+        ]),
+        ("Intelligence", [
+          ("Analytics", "analytics.index", "fa-chart-line"),
+          ("Reports", "reports.index", "fa-file-pdf"),
+        ]),
+        ("Administration", [
+          ("Admin Panel", "admin.index", "fa-user-gear"),
+        ]),
+      ] %}
+
+      {% for group_title, items in nav_groups %}
+        <div class="nav-section">
+          <p class="nav-section-title">{{ group_title }}</p>
+          <ul class="nav flex-column">
+            {% for item in items %}
+              {% set label = item[0] %}
+              {% set endpoint = item[1] %}
+              {% set icon = item[2] %}
+              {% set module = item[3] if item|length > 3 else 0 %}
+              {% if endpoint %}
+                <li class="nav-item">
+                  <a class="nav-link {% if request.endpoint == endpoint %}active{% endif %}"
+                     href="{{ url_for(endpoint) }}">
+                    <i class="fa-solid {{ icon }}"></i><span class="nav-text">{{ label }}</span>
+                  </a>
+                </li>
+              {% else %}
+                <li class="nav-item">
+                  <a class="nav-link nav-disabled" href="#" tabindex="-1" aria-disabled="true"
+                     title="Available in Module {{ module }}">
+                    <i class="fa-solid {{ icon }}"></i><span class="nav-text">{{ label }}</span>
+                  </a>
+                </li>
+              {% endif %}
+            {% endfor %}
+          </ul>
+        </div>
+      {% endfor %}
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <span class="user-avatar"><i class="fa-regular fa-user"></i></span>
+        <div class="user-meta">
+          {% if current_user.is_authenticated %}
+            <span class="user-name">{{ current_user.full_name }}</span>
+            <span class="user-role">{{ current_user.role.name if current_user.role else "No role" }}</span>
+          {% else %}
+            <span class="user-name">Guest</span>
+            <span class="user-role">Not signed in</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- ============================= Main ============================= -->
+  <div class="main-wrapper">
+
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="btn-icon" id="sidebarToggle" type="button" aria-label="Toggle sidebar">
+          <i class="fa-solid fa-bars-staggered"></i>
+        </button>
+        <div class="page-heading">
+          <h1 class="page-title">{% block page_title %}Home{% endblock %}</h1>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-search d-none d-md-flex">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="search" class="form-control" placeholder="Search modules…" disabled>
+        </div>
+
+        <div class="dropdown">
+          <button class="btn-icon position-relative" id="notifDropdown" type="button"
+                  data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Notifications">
+            <i class="fa-regular fa-bell"></i>
+            <span class="notification-dot"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end notif-menu" aria-labelledby="notifDropdown">
+            <div class="dropdown-header">Notifications</div>
+            <div class="notif-empty">
+              <i class="fa-regular fa-bell-slash"></i>
+              <p>No new alerts</p>
+            </div>
+          </div>
+        </div>
+
+        {% if current_user.is_authenticated %}
+        <div class="dropdown">
+          <button class="btn-icon user-avatar-btn" id="userMenu" type="button"
+                  data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Account menu">
+            <i class="fa-regular fa-user"></i>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
+            <div class="dropdown-header user-menu-header">
+              <strong>{{ current_user.full_name }}</strong>
+              <span>{{ current_user.role.name if current_user.role else "No role" }}</span>
+            </div>
+            <div class="dropdown-divider"></div>
+            <form method="post" action="{{ url_for('auth.logout') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="dropdown-item">
+                <i class="fa-solid fa-right-from-bracket"></i> Sign out
+              </button>
+            </form>
+          </div>
+        </div>
+        {% else %}
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('auth.login') }}">
+          <i class="fa-solid fa-right-to-bracket me-1"></i>Sign In
+        </a>
+        <a class="btn btn-accent btn-sm" href="{{ url_for('auth.register') }}">
+          <i class="fa-solid fa-user-plus me-1"></i>Register
+        </a>
+        {% endif %}
+      </div>
+    </header>
+
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="app-footer">
+      <span>© {{ current_year }} {{ app_name }} — AI-Based Public Safety Surveillance &amp; Emergency Alert System</span>
+      <span>v{{ app_version }}</span>
+    </footer>
+  </div>
+
+  <!-- Toast container for JavaScript-driven notifications -->
+  <div class="toast-container position-fixed top-0 end-0 p-3" id="flashToastContainer" aria-live="polite">
+    {% include "partials/_flash.html" %}
+  </div>
+
+  <!-- Bootstrap -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <!-- Application scripts -->
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

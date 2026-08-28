@@ -1,0 +1,22 @@
+{# Toast notifications rendered from server-side flash messages. #}
+{% set toast_icons = {
+  "success": ("fa-circle-check", "#22c55e"),
+  "danger":  ("fa-circle-xmark", "#ef4444"),
+  "error":   ("fa-circle-xmark", "#ef4444"),
+  "warning": ("fa-triangle-exclamation", "#f59e0b"),
+  "info":    ("fa-circle-info", "#38bdf8"),
+} %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      {% set icon, color = toast_icons.get(category, toast_icons["info"]) %}
+      <div class="toast flash-toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex align-items-center px-3 py-2">
+          <i class="fa-solid {{ icon }} me-2" style="color: {{ color }}"></i>
+          <div class="toast-body">{{ message }}</div>
+          <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}

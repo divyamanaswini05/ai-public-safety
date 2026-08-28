@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Setting — Admin — {{ app_name }}{% endblock %}
+{% block page_title %}Edit Setting{% endblock %}
+
+{% block content %}
+<div class="card glass" style="max-width:600px;">
+  <form method="post" action="{{ url_for('admin.setting_edit', setting_id=setting.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="mb-3">
+      <label class="form-label list-secondary">Key</label>
+      <input class="form-control" value="{{ setting.key }}" disabled>
+    </div>
+    <div class="mb-3">
+      <label class="form-label list-secondary">Value</label>
+      <input class="form-control" name="value" value="{{ setting.value }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label list-secondary">Description</label>
+      <input class="form-control" name="description" value="{{ setting.description or '' }}">
+    </div>
+
+    <button class="btn btn-accent btn-sm" type="submit">
+      <i class="fa-solid fa-check me-1"></i>Save
+    </button>
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('admin.settings') }}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}AI Engine — {{ app_name }}{% endblock %}
+{% block page_title %}AI Engine{% endblock %}
+
+{% block content %}
+{% set can_run = current_user.has_role("admin", "operator") %}
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-xl-3">
+    <div class="card glass kpi-card">
+      <div class="kpi-icon" style="color: #38bdf8"><i class="fa-solid fa-microchip"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-value">{{ status.detectors|length }}</span>
+        <span class="kpi-label">Registered Detectors</span>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card glass kpi-card">
+      <div class="kpi-icon" style="color: #a78bfa"><i class="fa-solid fa-camera"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-value">{{ cameras|length }}</span>
+        <span class="kpi-label">Cameras</span>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card glass kpi-card">
+      <div class="kpi-icon" style="color: #22c55e"><i class="fa-solid fa-eye"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-value">{{ "Available" if status.opencv else "Missing" }}</span>
+        <span class="kpi-label">OpenCV Backend</span>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card glass kpi-card">
+      <div class="kpi-icon" style="color: #f59e0b"><i class="fa-solid fa-database"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-value">{{ "Available" if status.yolo else "Missing" }}</span>
+        <span class="kpi-label">YOLO (Ultralytics)</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-12 col-xl-7">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Registered detectors</h3>
+      {% if status.detectors %}
+      <ul class="list-group list-group-flush panel-list">
+        {% for detector in status.detectors %}
+        <li class="list-group-item panel-list-item">
+          <span class="d-flex align-items-center gap-2">
+            <span class="camera-thumb"><i class="fa-solid fa-bolt"></i></span>
+            <span class="list-primary">{{ detector }}</span>
+          </span>
+          <span class="list-secondary d-block mt-1">
+            Detection modules (10-14) register their detectors here.
+          </span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty-panel"><i class="fa-solid fa-microchip"></i><p>No detectors registered</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-5">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Detection settings</h3>
+      <dl class="detail-grid">
+        <div><dt>Confidence threshold</dt><dd>{{ settings.confidence }}</dd></div>
+        <div><dt>Alert cooldown</dt><dd>{{ settings.cooldown }} seconds</dd></div>
+        <div><dt>Target FPS</dt><dd>{{ settings.fps }}</dd></div>
+      </dl>
+      <p class="list-secondary mb-0">
+        Thresholds and cooldowns are read from the <code>alerts.*</code> and
+        <code>surveillance.*</code> settings.
+      </p>
+    </div>
+
+    <div class="card glass mt-3">
+      <h3 class="panel-title mb-3">Trained models</h3>
+      {% if status.models %}
+      <ul class="list-group list-group-flush panel-list">
+        {% for key, model in status.models.items() %}
+        <li class="list-group-item panel-list-item">
+          <div class="d-flex align-items-start gap-2">
+            <span class="list-primary">{{ key|title }}</span>
+            <span class="ms-auto">
+              {% if model.available %}<span class="badge-soft success">Loaded</span>
+              {% else %}<span class="badge-soft muted">Missing</span>{% endif %}
+            </span>
+          </div>
+          <span class="list-secondary d-block">{{ model.description }}</span>
+          <code class="d-block mt-1" style="font-size:0.7rem">{{ model.filename }}</code>
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="list-secondary mb-0 mt-2">
+        Drop YOLO weight files into <code>ai/weights/</code>; detection modules
+        10-14 load them automatically.
+      </p>
+      {% else %}
+      <div class="empty-panel"><i class="fa-solid fa-database"></i><p>No models defined</p></div>
+      {% endif %}
+    </div>
+
+    <div class="card glass mt-3">
+      <h3 class="panel-title mb-3">Run detection</h3>
+      {% if can_run %}
+      <form method="post" action="{{ url_for('ai.run') }}" class="row g-2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="col-6">
+          <label class="form-label" for="cameraSelect">Camera</label>
+          <select class="form-select form-select-sm" id="cameraSelect" name="camera_id" required>
+            {% for camera in cameras %}
+            <option value="{{ camera.id }}">{{ camera.name }}{{ " — " ~ camera.location if camera.location }}</option>
+            {% else %}
+            <option value="" disabled>No cameras available</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-6">
+          <label class="form-label" for="detectorSelect">Detector</label>
+          <select class="form-select form-select-sm" id="detectorSelect" name="detector">
+            <option value="">All registered</option>
+            {% for detector in status.detectors %}
+            <option value="{{ detector }}">{{ detector }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12">
+          <button type="submit" class="btn btn-accent btn-sm mt-1"
+                  {% if not cameras %}disabled{% endif %}>
+            <i class="fa-solid fa-play me-1"></i>Run one-shot analysis
+          </button>
+        </div>
+      </form>
+      {% else %}
+      <p class="list-secondary mb-0">Admin or operator access is required to run detection.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12">
+    <div class="card glass">
+      <h3 class="panel-title mb-3">Recent detections</h3>
+      {% if recent_incidents %}
+      <div class="table-responsive">
+        <table class="table table-borderless table-sm mb-0">
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>Camera</th>
+              <th>Severity</th>
+              <th>Confidence</th>
+              <th>When</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for incident in recent_incidents %}
+            <tr>
+              <td>
+                <span class="list-primary">{{ incident.title }}</span>
+                <span class="list-secondary">{{ incident.incident_type.value|title }}</span>
+              </td>
+              <td class="list-secondary">{{ incident.camera.name if incident.camera else "—" }}</td>
+              <td>
+                {% if incident.severity.value == "critical" %}<span class="badge-soft danger">Critical</span>
+                {% elif incident.severity.value == "high" %}<span class="badge-soft warning">High</span>
+                {% elif incident.severity.value == "medium" %}<span class="badge-soft info">Medium</span>
+                {% else %}<span class="badge-soft muted">Low</span>{% endif %}
+              </td>
+              <td class="list-secondary">{{ "%.0f%%"|format(incident.confidence * 100) if incident.confidence is not none else "—" }}</td>
+              <td class="list-secondary">{{ incident.detected_at.strftime("%d %b, %H:%M") }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-panel"><i class="fa-solid fa-inbox"></i><p>No detections yet — run a one-shot analysis above</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
